@@ -63,6 +63,7 @@ These scripts `include(main.jl)` themselves and are launched standalone:
 ```bash
 julia --project=. test/validation/solcx_convergence.jl        # nx = 33/65/129 order estimate
 julia --project=. test/validation/blankenbach_convergence.jl  # Nu, Vrms vs nx = 41/61/81
+julia --project=. -t 4 test/validation/vankeken_rt.jl 1a 65 97 # first Vrms peak vs van Keken 1997
 julia --project=. test/long_bench.jl                          # 4-case laptop-budget sweep (~30-45 min)
 ```
 

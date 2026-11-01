@@ -58,6 +58,13 @@ $\eta \leftarrow \eta\,10^{-\Delta\cdot X}$.
   At domain boundaries the missing neighbour folds back onto the host so
   weights always sum to 1.
 
+Keep `"host"` for models with sharp material contrasts (lid over mantle, weak
+zones, sticky air, eclogite). `"bilinear"` blends properties over one cell on
+each side of an interface. In the [van Keken et al. (1997)
+benchmark](../reference/benchmarks.md#van-Keken-et-al.-1997-—-Rayleigh–Taylor-instability)
+it changes the peak time by less than 0.1 % in case 1a, and by about 1 % in
+case 1c. A smoothed starting interface helps more there.
+
 ### Cell-binned threading
 
 On the uniform Cartesian fast path (`mb.adapted == false`,

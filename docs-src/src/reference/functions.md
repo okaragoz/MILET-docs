@@ -76,7 +76,7 @@ Conventions: `cfg::Config` is the parsed parameter file
 |---|---|---|
 | `init_markers!(mk, cfg, mb, rock_type_fn, initial_T_fn)` | Seed the jittered marker cloud and sample rock type + T from the case closures (with slab pre-weakening for subduction) | `src/initialization/Markers.jl` |
 | `rock_type_from_layers(x, y, cfg)` | Data-driven initial geometry from `[[layer]]` entries (background / rectangle / polygon / bent_band; later overrides earlier) | `src/initialization/Geometry.jl` |
-| `rock_type_subduction(x, y, cfg)`, `rock_type_subduction_init`, `rock_type_extension`, `rock_type_falling_block`, `rock_type_plume`, `rock_type_solcx`, `rock_type_rt3`, … | Hard-coded case geometries selected by `select_case` | `src/initialization/Geometry.jl` |
+| `rock_type_subduction(x, y, cfg)`, `rock_type_subduction_init`, `rock_type_extension`, `rock_type_falling_block`, `rock_type_plume`, `rock_type_solcx`, `rock_type_vankeken`, `rock_type_vankeken_smooth`, `rock_type_rt3`, … | Hard-coded case geometries selected by `select_case` | `src/initialization/Geometry.jl` |
 | `initial_T_from_regions(x, y, cfg)` | Data-driven initial temperature from `[[init_T]]` regions (constant / linear / hsc / gaussian profiles) | `src/initialization/Temperature.jl` |
 | `hsc_temperature(y_m, age_yr, T_surf, T_mantle; kappa)` | Half-space-cooling geotherm $T = T_s + (T_m - T_s)\,\mathrm{erf}(y/2\sqrt{\kappa t})$ | `src/initialization/Temperature.jl` |
 | `initial_temperature_subduction`, `initial_temperature_plume`, `initial_temperature_blankenbach`, `initial_temperature_isothermal`, `initial_temperature_chunk`, `initial_temperature_plume3`, `initial_temperature_busse`, … | Per-case initial T closures | `src/initialization/Temperature.jl` |

@@ -282,6 +282,7 @@ Schur complement (see [Linear solvers](../numerics/solvers.md) and
 | `every` | int | 10 | Write VTU snapshots + PVD collections every N steps |
 | `diagnostics_every` | int | 1 | Full marker/DOF diagnostics (O(n_markers) scans, `isfinite` health checks in `record_step!`) every N steps; the cheap per-step `run.log` line is always written. Raise (e.g. 25) for large runs |
 | `every_myr` | float | 0.0 | Also write output at every multiple of this model time (Myr); the step that would pass it is shortened to land on it exactly (`output_every_myr`). 0 = off |
+| `bench_every_step` | bool | false | Write `bench.csv` (step, time, Nu, V_rms, V_surf, mobility, mean T) every time step instead of only at output steps, also with `do_heat = false` (Nu and mean T are then NaN). The time is that of the configuration the velocity was solved for. Used for transient benchmarks such as [van Keken et al. 1997](benchmarks.md#van-Keken-et-al.-1997-—-Rayleigh–Taylor-instability) |
 | `projection_mode` | string | `"host"` | Marker→cell projection: `host` (host-cell mean, sharp) \| `bilinear` (2×2 stencil scatter, smoothed) |
 
 ## `[subduction]`

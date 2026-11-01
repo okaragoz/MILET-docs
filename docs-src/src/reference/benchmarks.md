@@ -4,7 +4,7 @@ MILET's verification story has three layers: fast **smoke tests** that pin
 the pointwise physics to analytic results, **solver gates** that require the
 iterative and reduced formulations to reproduce the direct/reference
 solution to tight tolerances, and **community benchmarks** (SolCx,
-Blankenbach, King et al. 2010, Glerum, Busse) with published reference values. Everything
+Blankenbach, King et al. 2010, van Keken et al. 1997, Glerum, Busse) with published reference values. Everything
 below lives in `test/` and runs against the same source files as production
 (`test/runtests.jl` includes the identical module graph as `main.jl`).
 
@@ -18,6 +18,7 @@ RUN_BENCHMARKS=1 julia --project=. test/runtests.jl
 # convergence studies (longer)
 julia --project=. test/validation/solcx_convergence.jl
 julia --project=. test/validation/blankenbach_convergence.jl
+julia --project=. -t 4 test/validation/vankeken_rt.jl 1a 65 97
 
 # laptop-budget long bench (≈ 30–45 min)
 julia --project=. test/long_bench.jl
@@ -107,6 +108,136 @@ solver for Boussinesq convection on this grid. Carrying temperature on
 markers adds a further low bias that grows with Di. For the planetary
 dissipation numbers MILET is used at (Di ≈ 0.1), the error is below the
 Di = 0.25 values.
+
+## van Keken et al. (1997) — Rayleigh–Taylor instability
+
+Case 1 of van Keken et al. (1997) tests how markers carry a density
+interface. It is a Rayleigh–Taylor instability: a dense layer over a light
+one, with no temperature. The flow is driven only by the density difference,
+so the result depends on how well the markers represent the interface.
+
+**Setup** (`cases/vankeken1997_1a/1b/1c.toml`):
+
+- **Box:** λ × 1 with λ = 0.9142, the most unstable wavelength.
+- **Layers:** a light layer below the interface at height
+  $0.2 + 0.02\cos(\pi x/\lambda)$ above the floor; MILET's y axis points
+  down, so the light layer is $y > 1 - h(x)$ (`rock_type_vankeken`).
+- **Units:** density contrast, gravity, layer thickness and the dense-layer
+  viscosity are all 1. Time is in units of $\eta/(\Delta\rho\, g H)$.
+- **Light-layer viscosity:** 1 in case 1a, 0.1 in 1b, 0.01 in 1c.
+- **Boundaries:** no-slip top and bottom (`"uniform"` with zero velocity),
+  free-slip sides.
+- **Markers:** 4 × 4 per cell. Stokes is solved with Q2–Q1 elements, and
+  advection follows the usual CFL limit, with the time step capped at 1.
+
+**Measurement:** `[output] bench_every_step = true` writes $V_{\rm rms}$ to
+`bench.csv` every step, stamped with the time of the configuration that
+produced it. With the default projection the series rises in small steps,
+because a cell's density changes only when a marker crosses into it. So the
+first peak is taken as the vertex of a least-squares parabola through all
+points within 3 % of the largest value. The run stops before the second peak
+(t = 300, 120 and 90 for 1a, 1b and 1c).
+
+```bash
+julia --project=. -t 4 test/validation/vankeken_rt.jl 1a 65 97 129    # sharp interface
+PROJECTION=bilinear julia --project=. -t 4 test/validation/vankeken_rt.jl 1a 65 97
+SMOOTH=1 julia --project=. -t 4 test/validation/vankeken_rt.jl 1a 65 97
+```
+
+**Three ways to represent the interface:**
+
+- **Sharp interface, host projection (the default).** Each marker is either
+  dense or light. Each cell's density is the mean of the markers inside it
+  (`projection_mode = "host"`).
+- **Sharp interface, bilinear projection.** Each marker contributes to the
+  2 × 2 cells around it, with bilinear weights
+  (`projection_mode = "bilinear"`).
+- **Smoothed interface, host projection.** As in the ASPECT cookbook, the
+  starting light-layer fraction is $C = \tfrac12\,[1 + \tanh(d/w)]$, with d
+  the depth below the interface and w one cell height. A marker carries a
+  single rock type, so it becomes light with probability C. The draw is a
+  deterministic hash of the marker position, so runs repeat exactly
+  (`rock_type_vankeken_smooth`).
+
+**First $V_{\rm rms}$ peak.** Each cell gives the peak value and its time,
+with the error against the reference in brackets.
+
+| Case (reference) | Grid | Sharp, host | Sharp, bilinear | Smoothed, host |
+|---|---|---|---|---|
+| 1a (0.0031 at t = 208.99) | 64 × 64 | 0.00312 (+0.5 %) at 212.7 (+1.8 %) | 0.00313 (+1.0 %) at 212.5 (+1.7 %) | 0.00312 (+0.6 %) at 211.4 (+1.1 %) |
+| | 96 × 96 | 0.00313 (+1.0 %) at 212.6 (+1.7 %) | 0.00314 (+1.3 %) at 212.6 (+1.7 %) | 0.00311 (+0.3 %) at 211.9 (+1.4 %) |
+| | 128 × 128 | 0.00309 (−0.3 %) at 209.7 (+0.3 %) | — | — |
+| 1b (0.0095 at t = 71.92) | 64 × 64 | 0.00958 (+0.8 %) at 73.9 (+2.7 %) | — | — |
+| | 96 × 96 | 0.00954 (+0.4 %) at 73.8 (+2.7 %) | — | — |
+| 1c (0.0146 at t = 49.57) | 64 × 64 | 0.01476 (+1.1 %) at 50.4 (+1.7 %) | 0.01488 (+1.9 %) at 50.0 (+0.8 %) | 0.01426 (−2.3 %) at 48.5 (−2.2 %) |
+| | 96 × 96 | 0.01461 (+0.1 %) at 50.5 (+1.8 %) | 0.01471 (+0.8 %) at 50.3 (+1.5 %) | 0.01449 (−0.8 %) at 49.3 (−0.5 %) |
+
+![V_rms over time in van Keken cases 1a and 1c on 96 × 96 cells, for the three interface treatments, with the first peak of van Keken et al. (1997)](../media/vankeken1997.svg)
+
+*$V_{\rm rms}$ on 96 × 96 cells. Top: the whole run; bottom: around the first
+peak. The circle is the reference peak. In 1c the smoothed interface (green)
+rises earlier and peaks closest to the reference time; the sharp interface,
+with either projection, peaks about 1 time unit late. Made with
+`docs-src/scripts/plot_vankeken.py` from the `bench.csv` files of
+`test/validation/vankeken_rt.jl`.*
+
+- **Peak height:** within about 1 % with every method from 64 × 64 up. The
+  reference is only given to two significant figures.
+- **Peak time:** with the sharp interface, the peak comes 1.7–2.7 % late on
+  64 × 64 and 96 × 96, and only reaches 0.3 % at 128 × 128 in case 1a. The
+  delay comes from the starting interface. Its wave (amplitude 0.02) is
+  smaller than a cell (0.016 at 64 × 64), so host cells see it as a
+  staircase.
+- **Bilinear:** it does not remove the delay. In 1a the change is below
+  0.1 %. In 1c the peak comes slightly earlier but rises slightly higher.
+  Spreading markers over neighbouring cells smooths the field, but it does
+  not add the information about where the interface lies inside a cell that
+  the sharp starting step has lost.
+- **Smoothed interface:** it gives the best timing at the finest grid. On
+  96 × 96, 1c is within 0.8 % in height and 0.5 % in time, approaching the
+  reference from below as the grid is refined. In 1a the delay drops from
+  1.7 % to 1.1–1.4 %.
+- **Which to use:** the benchmark is passed with the default sharp interface
+  and host projection. For production models with sharp material contrasts,
+  keep `projection_mode = "host"`, because bilinear blends material
+  properties over one cell on each side. Smoothing a starting interface
+  over about one cell helps when the starting perturbation is smaller than a
+  cell.
+
+The second $V_{\rm rms}$ peak is not compared. It comes from small-scale
+features of the interface and does not converge with a sharp starting step in
+any code, as the ASPECT cookbook shows.
+
+**How other codes map markers to the grid:**
+
+- **ASPECT:** its default "cell average" particle interpolation is the same
+  as MILET's host projection. ASPECT also offers least-squares
+  interpolations, and Gassmöller et al. (2019) show they restore higher-order
+  accuracy where the fields are smooth.
+- **Finite-difference marker codes** (I2VIS, LaMEM): they spread each marker
+  over the surrounding nodes with bilinear distance weights, like MILET's
+  `"bilinear"`.
+- **At sharp viscosity jumps:** the interpolation scheme gains little
+  (Thielmann et al. 2014). How viscosity is averaged matters more there;
+  MILET's default is harmonic (`viscosity_averaging`).
+
+The short gated run `test/benchmarks/run_vankeken.jl` (`RUN_BENCHMARKS=1`)
+takes 20 steps of case 1a on 32 × 32 cells. It checks that the layers start in
+the right place and that the instability grows.
+
+**References**
+
+- van Keken, P. E., King, S. D., Schmeling, H., Christensen, U. R.,
+  Neumeister, D., & Doin, M.-P. (1997). A comparison of methods for the
+  modeling of thermochemical convection. *J. Geophys. Res.*, 102(B10),
+  22477–22495. doi:10.1029/97JB01353
+- Gassmöller, R., Lokavarapu, H., Bangerth, W., & Puckett, E. G. (2019).
+  Evaluating the accuracy of hybrid finite element/particle-in-cell methods
+  for modelling incompressible Stokes flow. *Geophys. J. Int.*, 219,
+  1915–1938. doi:10.1093/gji/ggz405
+- Thielmann, M., May, D. A., & Kaus, B. J. P. (2014). Discretization errors in
+  the hybrid finite element particle-in-cell method. *Pure Appl. Geophys.*,
+  171, 2165–2184. doi:10.1007/s00024-014-0808-9
 
 ## Geometric multigrid gates
 
@@ -217,8 +348,8 @@ $\delta = \sqrt{k_\phi \zeta_\phi/\mu}$).
 
 With `RUN_BENCHMARKS=1`, `test/runtests.jl` additionally runs short
 end-to-end models (`test/benchmarks/`): SolCx (analytic ρ/η), the falling
-block (50 steps), a 20-step plume, and a short Blankenbach 1A that logs Nu
-and V_rms against 4.884 / 42.86. `test/long_bench.jl` is the curated
+block (50 steps), a 20-step plume, a short Blankenbach 1A that logs Nu
+and V_rms against 4.884 / 42.86, and 20 steps of van Keken case 1a. `test/long_bench.jl` is the curated
 laptop-budget suite (SolCx at two resolutions, falling block, plume,
 Blankenbach with ~200 steps) used to track wall-clock and physics regressions
 together.
