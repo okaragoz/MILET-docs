@@ -1,7 +1,7 @@
 # MILET-docs sources
 
 The website https://okaragoz.github.io/MILET-docs/ is served from the top of
-this repository (branch gh-pages, its only branch). This folder holds its
+this repository (branch main, its only branch). This folder holds its
 sources: the pages (`src/`) and the build script (`make.jl`). The code itself
 is in the separate repository okaragoz/MILET.
 

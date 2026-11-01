@@ -152,4 +152,4 @@ makedocs(;
 )
 
 # Deployment (see README.md): build with CI=true so the site base is /MILET-docs/,
-# then copy docs-src/build/1/ to the top of this repository (gh-pages).
+# then copy docs-src/build/1/ to the top of this repository (main).
