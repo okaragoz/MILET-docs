@@ -27,3 +27,5 @@ rsync -a --delete --exclude .git --exclude .nojekyll --exclude .gitignore \
 
 Check that the hrefs start with `/MILET-docs/`, then commit
 "deploy: okaragoz/MILET@<short sha>" and push.
+
+The code itself: https://github.com/okaragoz/MILET (private).
