@@ -1,0 +1,6 @@
+docs-src/build/
+docs-src/node_modules/
+docs-src/package-lock.json
+docs-src/src/examples/
+._*
+.DS_Store
